@@ -19,7 +19,18 @@ type Message = {
   createdAt: string;
 };
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const normalizeApiUrl = (rawUrl: string | undefined) => {
+  const fallbackUrl = "http://localhost:5000/api";
+  const value = (rawUrl || fallbackUrl).trim().replace(/\/+$/, "");
+
+  if (/\/api$/i.test(value)) {
+    return value;
+  }
+
+  return `${value}/api`;
+};
+
+const API_URL = normalizeApiUrl(import.meta.env.VITE_API_URL);
 
 function App() {
   const [mode, setMode] = useState<"login" | "signup">("login");
@@ -70,7 +81,11 @@ function App() {
       setPassword("");
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        setAuthError(error.response?.data?.message || "Authentication failed");
+        if (!error.response) {
+          setAuthError("Cannot reach backend. Check VITE_API_URL and backend CORS CLIENT_URL.");
+        } else {
+          setAuthError(error.response.data?.message || "Authentication failed");
+        }
       } else {
         setAuthError("Authentication failed");
       }
